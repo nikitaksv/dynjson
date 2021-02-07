@@ -57,17 +57,35 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if rootObj, ok := j.Value.(dynjson.Object); ok {
+	if rootObj, ok := j.Value.(*dynjson.Object); ok {
 		for originJsonIndex, prop := range rootObj.Properties {
-			fmt.Printf("RootObj - Index: %d, Key: %s, Value: %+v", originJsonIndex, prop.Key, prop.Value)
+			fmt.Printf("root[%d] Key: %s, Value: %+v\n", originJsonIndex, prop.Key, prop.Value)
 
-			if nestObj, ok := prop.Value.(dynjson.Object); ok {
+			if nestObj, ok := prop.Value.(*dynjson.Object); ok {
 				for nestedOriginJsonIndex, propNestObj := range nestObj.Properties {
-					fmt.Printf("NestObj - Index: %d, Key: %s, Value: %+v", nestedOriginJsonIndex, propNestObj.Key, propNestObj.Value)
+					fmt.Printf("\t%s[%d] Key: %s, Value: %+v\n", prop.Key, nestedOriginJsonIndex, propNestObj.Key, propNestObj.Value)
 				}
 			}
 		}
 	}
+	/*
+		root[0] Key: a1, Value: one
+		root[1] Key: a2, Value: -10
+		root[2] Key: a3, Value: ahead
+		root[3] Key: a4, Value: false
+		root[4] Key: a5, Value: 17
+		root[5] Key: a6, Value: wet
+		root[6] Key: a7, Value: &{Key:a7 Properties:[0xc000004720 0xc000004780 0xc0000047e0 0xc000004860 0xc0000048c0 0xc000004920]}
+			a7[0] Key: b1, Value: one
+			a7[1] Key: b2, Value: two
+			a7[2] Key: b3, Value: false
+			a7[3] Key: b4, Value: 4
+			a7[4] Key: b5, Value: &{Elements:[five]}
+			a7[5] Key: b6, Value: true
+		root[7] Key: a8, Value: <nil>
+
+		Process finished with exit code 0
+	*/
 }
 ```
  
