@@ -1,7 +1,7 @@
 # dynjson
 
-[![Godoc Reference](https://godoc.org/github.com/nikitaksv/strcase?status.svg)](http://godoc.org/github.com/nikitaksv/strcase)
-[![Coverage Status](https://coveralls.io/repos/github/nikitaksv/strcase/badge.svg?branch=main)](https://coveralls.io/github/nikitaksv/strcase?branch=main)
+[![Godoc Reference](https://godoc.org/github.com/nikitaksv/dynjson?status.svg)](http://godoc.org/github.com/nikitaksv/dynjson)
+[![Coverage Status](https://coveralls.io/repos/github/nikitaksv/dynjson/badge.svg?branch=main)](https://coveralls.io/github/nikitaksv/dynjson?branch=main)
 
 Parsing JSON to dynamic json structure with sorted fields
 
