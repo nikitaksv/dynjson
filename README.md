@@ -2,6 +2,7 @@
 
 [![Godoc Reference](https://godoc.org/github.com/nikitaksv/dynjson?status.svg)](http://godoc.org/github.com/nikitaksv/dynjson)
 [![Coverage Status](https://coveralls.io/repos/github/nikitaksv/dynjson/badge.svg?branch=main)](https://coveralls.io/github/nikitaksv/dynjson?branch=main)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnikitaksv%2Fdynjson.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fnikitaksv%2Fdynjson?ref=badge_shield)
 
 Parsing JSON to dynamic json structure with sorted fields
 
@@ -89,3 +90,6 @@ func main() {
 }
 ```
  
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fnikitaksv%2Fdynjson.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fnikitaksv%2Fdynjson?ref=badge_large)
