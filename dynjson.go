@@ -45,6 +45,16 @@ type Object struct {
 	Properties []*Property `json:"properties"`
 }
 
+func (o Object) GetProperty(key string) (*Property, bool) {
+	for _, p := range o.Properties {
+		if p.Key == key {
+			return p, true
+		}
+	}
+
+	return nil, false
+}
+
 type Property struct {
 	Key   string      `json:"key"`
 	Value interface{} `json:"value"`
