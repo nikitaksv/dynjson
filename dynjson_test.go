@@ -84,7 +84,7 @@ func TestJson_UnmarshalJSON(t *testing.T) {
 					},
 				},
 			},
-			args:    args{data: []byte(`{"a1":{"b1":true}}`)},
+			args:    args{data: []byte(`{"a1":{"b1":true//asd}}`)},
 			wantErr: false,
 		},
 		{
@@ -160,11 +160,11 @@ func TestJson_UnmarshalJSON(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			j := &Json{}
 			if err := j.UnmarshalJSON(tt.args.data); err != nil {
-				t.Errorf("UnmarshalJSON() error = %v", err)
+				t.Fatalf("UnmarshalJSON() error = %v", err)
 			}
 
 			if !reflect.DeepEqual(j, tt.want) && !tt.wantErr {
-				t.Errorf("DeepEqual json = %s not equal want = %s, wantErr %v", j, tt.want, tt.wantErr)
+				t.Fatalf("DeepEqual json = %s not equal want = %s, wantErr %v", j, tt.want, tt.wantErr)
 			}
 		})
 	}

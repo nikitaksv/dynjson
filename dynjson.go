@@ -70,11 +70,15 @@ func parseJson(j *Json, dec *json.Decoder) error {
 	if delim, ok := token.(json.Delim); ok {
 		if delim == '{' {
 			obj := &Object{Key: "root", Properties: []*Property{}}
-			parseMap(obj, dec)
+			if err = parseMap(obj, dec); err != nil {
+				return err
+			}
 			j.Value = obj
 		} else if delim == '[' {
 			arr := &Array{}
-			parseArray(arr, dec)
+			if err = parseArray(arr, dec); err != nil {
+				return err
+			}
 			j.Value = arr
 		}
 	} else {
@@ -84,7 +88,7 @@ func parseJson(j *Json, dec *json.Decoder) error {
 	return nil
 }
 
-func parseMap(obj *Object, dec *json.Decoder) {
+func parseMap(obj *Object, dec *json.Decoder) error {
 	for {
 		prop := &Property{
 			Key:   "",
@@ -93,11 +97,11 @@ func parseMap(obj *Object, dec *json.Decoder) {
 
 		token, err := dec.Token()
 		if err != nil {
-			return
+			return err
 		}
 
 		if delim, ok := token.(json.Delim); ok && delim == '}' {
-			return
+			return nil
 		}
 
 		key := token.(string)
@@ -105,7 +109,7 @@ func parseMap(obj *Object, dec *json.Decoder) {
 
 		token, err = dec.Token()
 		if err != nil {
-			return
+			return err
 		}
 
 		if delim, ok := token.(json.Delim); ok {
@@ -124,7 +128,7 @@ func parseMap(obj *Object, dec *json.Decoder) {
 				parseArray(nestArr, dec)
 				prop.Value = nestArr
 			case '}', ']':
-				return
+				return nil
 			}
 		} else {
 			// this a value
@@ -135,13 +139,13 @@ func parseMap(obj *Object, dec *json.Decoder) {
 	}
 }
 
-func parseArray(arr *Array, dec *json.Decoder) {
+func parseArray(arr *Array, dec *json.Decoder) error {
 	for index := 0; ; index++ {
 		var elem interface{}
 
 		token, err := dec.Token()
 		if err != nil {
-			return
+			return err
 		}
 
 		if delim, ok := token.(json.Delim); ok {
@@ -160,7 +164,7 @@ func parseArray(arr *Array, dec *json.Decoder) {
 				parseArray(nestArr, dec)
 				elem = nestArr
 			case '}', ']':
-				return
+				return nil
 			}
 		} else {
 			// this a value
