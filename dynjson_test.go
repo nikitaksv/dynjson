@@ -18,156 +18,21 @@ package dynjson
 
 import (
 	"encoding/json"
-	"reflect"
 	"strings"
 	"testing"
 )
 
 func BenchmarkJson_UnmarshalJSON(b *testing.B) {
-	data := []byte(`{"a1":[{"b1":"one","b2":"two","b3":false,"b4":4,"b5":["five"],"b6":true}],"a2":-10,"a3":"ahead","a4":false,"a5":17,"a6":"wet","a7":null}`)
+	data := []byte(`{"a1":[{"b1":"one","b2":"two","b3":false,"b4":4,"b5":["five"],"b6":true}],"a2":-10,"a3":"ahead","a4":false,"a5":17.2,"a6":"wet","a7":null,"a8":{"c1":"cc"}}`)
 	b.Run("Unmarshall all data types", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			j := &Json{}
-			err := j.UnmarshalJSON(data)
+			err := json.Unmarshal(data, j)
 			if err != nil {
-				b.Errorf("UnmarshalJSON error = %v", err)
-
+				b.Fatalf("UnmarshalJSON error = %v", err)
 			}
 		}
 	})
-}
-
-func TestJson_UnmarshalJSON(t *testing.T) {
-	type args struct {
-		data []byte
-	}
-	tests := []struct {
-		name    string
-		want    *Json
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "one field",
-			want: &Json{
-				Value: &Object{
-					Key: "root",
-					Properties: []*Property{
-						{
-							Key:   "a1",
-							Value: true,
-						},
-					},
-				},
-			},
-			args:    args{data: []byte(`{"a1":true}`)},
-			wantErr: false,
-		},
-		{
-			name: "nested object",
-			want: &Json{
-				Value: &Object{
-					Key: "root",
-					Properties: []*Property{
-						{
-							Key: "a1",
-							Value: &Object{
-								Key: "a1",
-								Properties: []*Property{
-									{
-										Key:   "b1",
-										Value: true,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			args:    args{data: []byte(`{"a1":{"b1":true//asd}}`)},
-			wantErr: false,
-		},
-		{
-			name: "nested array",
-			want: &Json{
-				Value: &Object{
-					Key: "root",
-					Properties: []*Property{
-						{
-							Key: "a1",
-							Value: &Array{
-								Elements: []interface{}{
-									&Object{
-										Key: "0",
-										Properties: []*Property{
-											{
-												Key:   "b1",
-												Value: true,
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			args:    args{data: []byte(`{"a1":[{"b1":true}]}`)},
-			wantErr: false,
-		},
-		{
-			name: "root array",
-			want: &Json{
-				Value: &Array{
-					Elements: []interface{}{
-						&Object{
-							Key: "0",
-							Properties: []*Property{
-								{
-									Key:   "b1",
-									Value: true,
-								},
-							},
-						},
-					},
-				},
-			},
-			args:    args{data: []byte(`[{"b1":true}]`)},
-			wantErr: false,
-		},
-		{
-			name: "check error equal",
-			want: &Json{
-				Value: &Array{
-					Elements: []interface{}{
-						&Object{
-							Key: "0",
-							Properties: []*Property{
-								{
-									Key:   "b1",
-									Value: "error value",
-								},
-							},
-						},
-					},
-				},
-			},
-			args:    args{data: []byte(`[{"b1":true}]`)},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			j := &Json{}
-			if err := j.UnmarshalJSON(tt.args.data); err != nil {
-				t.Fatalf("UnmarshalJSON() error = %v", err)
-			}
-
-			if !reflect.DeepEqual(j, tt.want) && !tt.wantErr {
-				t.Fatalf("DeepEqual json = %s not equal want = %s, wantErr %v", j, tt.want, tt.wantErr)
-			}
-		})
-	}
 }
 
 func TestJson(t *testing.T) {
@@ -183,36 +48,66 @@ func TestJson(t *testing.T) {
 	}{
 		{
 			name: "check object sorted json",
-			want: []byte(`{"value":{"key":"root","properties":[{"key":"a1","value":{"elements":[{"key":"0","properties":[{"key":"b1","value":"one"},{"key":"b2","value":"two"},{"key":"b3","value":false},{"key":"b4","value":4},{"key":"b5","value":{"elements":["five"]}},{"key":"b6","value":true}]}]}},{"key":"a2","value":-10},{"key":"a3","value":"ahead"},{"key":"a4","value":false},{"key":"a5","value":17},{"key":"a6","value":"wet"},{"key":"a7","value":null}]}}`),
+			want: []byte(`{"a1":[{"b1":"one","b2":"two","b3":false,"b4":4,"b5":["five"],"b6":true}],"a2":-10,"a3":"ahead","a4":false,"a5":17.2,"a6":"wet","a7":null,"a8":{"c1":"cc"}}`),
 			args: args{
-				data: []byte(`{"a1":[{"b1":"one","b2":"two","b3":false,"b4":4,"b5":["five"],"b6":true}],"a2":-10,"a3":"ahead","a4":false,"a5":17,"a6":"wet","a7":null}`),
+				data: []byte(`{"a1":[{"b1":"one","b2":"two","b3":false,"b4":4,"b5":["five"],"b6":true}],"a2":-10,"a3":"ahead","a4":false,"a5":17.2,"a6":"wet","a7":null,"a8":{"c1":"cc"}}`),
 			},
 			wantErr: false,
 		},
 		{
 			name: "check array sorted json",
-			want: []byte(`{"value":{"elements":[{"key":"0","properties":[{"key":"a1","value":{"elements":[{"key":"0","properties":[{"key":"b1","value":"one"},{"key":"b2","value":"two"},{"key":"b3","value":false},{"key":"b4","value":4},{"key":"b5","value":{"elements":["five"]}},{"key":"b6","value":true}]}]}},{"key":"a2","value":-10},{"key":"a3","value":"ahead"},{"key":"a4","value":false},{"key":"a5","value":17},{"key":"a6","value":"wet"},{"key":"a7","value":null}]}]}}`),
+			want: []byte(`[{"a1":[{"b1":"one","b2":"two","b3":false,"b4":4,"b5":["five"],"b6":true}],"a2":-10,"a3":"ahead","a4":false,"a5":17,"a6":"wet","a7":null}]`),
 			args: args{
 				data: []byte(`[{"a1":[{"b1":"one","b2":"two","b3":false,"b4":4,"b5":["five"],"b6":true}],"a2":-10,"a3":"ahead","a4":false,"a5":17,"a6":"wet","a7":null}]`),
 			},
 			wantErr: false,
 		},
+		{
+			name: "first string",
+			want: []byte(`"qwerty"`),
+			args: args{
+				data: []byte(`"qwerty"`),
+			},
+			wantErr: false,
+		},
+		{
+			name: "first array of string",
+			want: []byte(`["qwerty"]`),
+			args: args{
+				data: []byte(`["qwerty"]`),
+			},
+			wantErr: false,
+		},
+		{
+			name: "incorrect json",
+			args: args{
+				data: []byte(`qwerty`),
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty json",
+			args: args{
+				data: []byte(``),
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			j := &Json{}
-			if err := j.UnmarshalJSON(tt.args.data); err != nil {
+			if err := json.Unmarshal(tt.args.data, j); err != nil && !tt.wantErr {
 				t.Errorf("UnmarshalJSON() error = %v", err)
 			}
 			bs, err := json.Marshal(j)
-			if err != nil {
+			if err != nil && !tt.wantErr {
 				t.Errorf("MarshalJSON() error = %v", err)
 			}
 
 			actualStr := string(bs)
 			wantStr := string(tt.want)
 			if strings.Compare(actualStr, wantStr) != 0 && !tt.wantErr {
-				t.Errorf("Compare() actual = %v not equal want = %v, wantErr %v", actualStr, wantStr, tt.wantErr)
+				t.Errorf("Compare() actual = %s not equal want = %s, wantErr %v", actualStr, wantStr, tt.wantErr)
 			}
 		})
 	}

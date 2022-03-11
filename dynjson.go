@@ -19,30 +19,40 @@ package dynjson
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
-	"strconv"
-)
-
-var (
-	ErrFirstTokenJson = errors.New("incorrect json first token")
 )
 
 type Json struct {
-	// Value typeOf Object or Array
-	Value interface{} `json:"value"`
+	// Value typeOf Object or Array or JSON-Type
+	Value      interface{}
+	escapeHTML bool
+}
+
+func (j *Json) SetEscapeHTML(escapeHTML bool) {
+	j.escapeHTML = escapeHTML
 }
 
 func (j *Json) UnmarshalJSON(data []byte) error {
-	return parseJson(j, json.NewDecoder(bytes.NewReader(data)))
+	return unmarshalJson(j, json.NewDecoder(bytes.NewReader(data)))
+}
+
+func (j *Json) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(j.escapeHTML)
+
+	if err := marshalValue(enc, &buf, j.Value); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 type Array struct {
-	Elements []interface{} `json:"elements"`
+	Elements []interface{}
 }
 
 type Object struct {
-	Key        string      `json:"key"`
-	Properties []*Property `json:"properties"`
+	Properties []*Property
 }
 
 func (o Object) GetProperty(key string) (*Property, bool) {
@@ -56,11 +66,11 @@ func (o Object) GetProperty(key string) (*Property, bool) {
 }
 
 type Property struct {
-	Key   string      `json:"key"`
-	Value interface{} `json:"value"`
+	Key   string
+	Value interface{}
 }
 
-func parseJson(j *Json, dec *json.Decoder) error {
+func unmarshalJson(j *Json, dec *json.Decoder) error {
 	// first token
 	token, err := dec.Token()
 	if err != nil {
@@ -69,32 +79,27 @@ func parseJson(j *Json, dec *json.Decoder) error {
 
 	if delim, ok := token.(json.Delim); ok {
 		if delim == '{' {
-			obj := &Object{Key: "root", Properties: []*Property{}}
-			if err = parseMap(obj, dec); err != nil {
+			obj := &Object{Properties: []*Property{}}
+			if err = unmarshalObject(obj, dec); err != nil {
 				return err
 			}
 			j.Value = obj
 		} else if delim == '[' {
 			arr := &Array{}
-			if err = parseArray(arr, dec); err != nil {
+			if err = unmarshalArray(arr, dec); err != nil {
 				return err
 			}
 			j.Value = arr
 		}
 	} else {
-		return ErrFirstTokenJson
+		j.Value = token
 	}
 
 	return nil
 }
 
-func parseMap(obj *Object, dec *json.Decoder) error {
+func unmarshalObject(obj *Object, dec *json.Decoder) error {
 	for {
-		prop := &Property{
-			Key:   "",
-			Value: nil,
-		}
-
 		token, err := dec.Token()
 		if err != nil {
 			return err
@@ -104,8 +109,7 @@ func parseMap(obj *Object, dec *json.Decoder) error {
 			return nil
 		}
 
-		key := token.(string)
-		prop.Key = key
+		prop := &Property{Key: token.(string)}
 
 		token, err = dec.Token()
 		if err != nil {
@@ -114,24 +118,27 @@ func parseMap(obj *Object, dec *json.Decoder) error {
 
 		if delim, ok := token.(json.Delim); ok {
 			switch delim {
-			case '{': // this a object
+			case '{': // this is an object
 				nestObj := &Object{
-					Key:        prop.Key,
 					Properties: []*Property{},
 				}
-				parseMap(nestObj, dec)
+				if err = unmarshalObject(nestObj, dec); err != nil {
+					return err
+				}
 				prop.Value = nestObj
-			case '[': // this a array
+			case '[': // this is an array
 				nestArr := &Array{
 					Elements: []interface{}{},
 				}
-				parseArray(nestArr, dec)
+				if err = unmarshalArray(nestArr, dec); err != nil {
+					return err
+				}
 				prop.Value = nestArr
 			case '}', ']':
 				return nil
 			}
 		} else {
-			// this a value
+			// this is value
 			prop.Value = token
 		}
 
@@ -139,7 +146,7 @@ func parseMap(obj *Object, dec *json.Decoder) error {
 	}
 }
 
-func parseArray(arr *Array, dec *json.Decoder) error {
+func unmarshalArray(arr *Array, dec *json.Decoder) error {
 	for index := 0; ; index++ {
 		var elem interface{}
 
@@ -152,25 +159,80 @@ func parseArray(arr *Array, dec *json.Decoder) error {
 			switch delim {
 			case '{':
 				nestObj := &Object{
-					Key:        strconv.Itoa(index),
 					Properties: []*Property{},
 				}
-				parseMap(nestObj, dec)
+				if err = unmarshalObject(nestObj, dec); err != nil {
+					return err
+				}
 				elem = nestObj
 			case '[':
 				nestArr := &Array{
 					Elements: []interface{}{},
 				}
-				parseArray(nestArr, dec)
+				if err = unmarshalArray(nestArr, dec); err != nil {
+					return err
+				}
 				elem = nestArr
 			case '}', ']':
 				return nil
 			}
 		} else {
-			// this a value
+			// this is value
 			elem = token
 		}
 
 		arr.Elements = append(arr.Elements, elem)
 	}
+}
+
+func marshalValue(enc *json.Encoder, buf *bytes.Buffer, value interface{}) error {
+	if obj, ok := value.(*Object); ok {
+		if err := marshalObject(enc, buf, obj); err != nil {
+			return err
+		}
+	} else if arr, ok := value.(*Array); ok {
+		if err := marshalArray(enc, buf, arr); err != nil {
+			return err
+		}
+	} else if err := enc.Encode(value); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func marshalObject(enc *json.Encoder, buf *bytes.Buffer, obj *Object) error {
+	buf.WriteByte('{')
+	defer buf.WriteByte('}')
+
+	for i, prop := range obj.Properties {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		if err := enc.Encode(prop.Key); err != nil {
+			return err
+		}
+		buf.WriteByte(':')
+		if err := marshalValue(enc, buf, prop.Value); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func marshalArray(enc *json.Encoder, buf *bytes.Buffer, arr *Array) error {
+	buf.WriteByte('[')
+	defer buf.WriteByte(']')
+
+	for i, el := range arr.Elements {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		if err := marshalValue(enc, buf, el); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
